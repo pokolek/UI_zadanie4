@@ -20,16 +20,19 @@ class Priestor:
         print(x, y, k)
         return
 
-    def k1(self):
-    def k2(self):
-    def k3(self):
-    def k15(self):
+    def generate_numbers(self):
+        f = open("cisla.txt", "w")
+        f.write("5 6\n")
+        f.write("9 0\n")
+        f.close()
+        f = open("cisla.txt", "r")
+
+
+
 
     # zaciatok
     def __str__(self):
-        print(self.body['P'])
-        self.classify(10,20,30)
-
+        self.generate_numbers()
         return " "
 
 
