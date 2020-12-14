@@ -1,5 +1,7 @@
 import random
 import time
+import matplotlib.pyplot as plt
+import math
 
 
 class Priestor:
@@ -11,29 +13,21 @@ class Priestor:
             'P': [(4500, 4400), (4200, 3000), (1800, 2400), (2500, 3400), (2000, 1400)]
         }
 
-        self.vsetky_body = {
-            'R': [(-4500, -4400), (-4200, -3000), (-1800, -2400), (-2500, -3400), (-2000, -1400)],
-            'G': [(4500, -4400), (4200, -3000), (1800, -2400), (2500, -3400), (2000, -1400)],
-            'B': [(-4500, 4400), (-4200, 3000), (-1800, 2400), (-2500, 3400), (-2000, 1400)],
-            'P': [(4500, 4400), (4200, 3000), (1800, 2400), (2500, 3400), (2000, 1400)]
-        }
-
         self.rozsahy = {
             "rx": (0, 5500),
-            "ry": (4500, 10000),
+            "ry": (0, 5500),
             "gx": (4500, 10000),
-            "gy": (4500, 10000),
+            "gy": (0, 5500),
             "bx": (0, 5500),
-            "by": (0, 5500),
+            "by": (4500, 10000),
             "px": (4500, 10000),
-            "py": (0, 5500),
+            "py": (4500, 10000),
+
         }
 
-    def classify(self, x, y, k):
-        print(x, y, k)
-        return
+        self.rozdielne_body_po_klasifikacii = 0
 
-    def generate_numbers(self, n):
+    def generuj_n_bodov(self, n):
         generovane_body = []
         R = set()
         G = set()
@@ -58,15 +52,12 @@ class Priestor:
             elif i == 1:
                 rozsah_x = self.rozsahy["gx"]
                 rozsah_y = self.rozsahy["gy"]
-
             elif i == 2:
                 rozsah_x = self.rozsahy["bx"]
                 rozsah_y = self.rozsahy["by"]
             elif i == 3:
                 rozsah_x = self.rozsahy["px"]
                 rozsah_y = self.rozsahy["py"]
-            else:
-                print("cicka")
 
             pocet_bodov = 0
             while pocet_bodov != n:
@@ -115,8 +106,6 @@ class Priestor:
                             P.add(tmp_suradnice)
                         pocet_bodov += 1
 
-        # print("Pocet generovanych bodov: ", pocet_bodov)
-
         f = open("cisla.txt", "w")
 
         index_bodu = 0
@@ -127,6 +116,16 @@ class Priestor:
             generovane_body.append(list(P)[index_bodu])
 
             index_bodu += 1
+
+        for i in range(5):
+            f.write("R" + " " + (self.pociatocne_body["R"][i][0] + 5000).__str__() + " " + (
+                    self.pociatocne_body["R"][i][1] + 5000).__str__() + "\n")
+            f.write("G" + " " + (self.pociatocne_body["G"][i][0] + 5000).__str__() + " " + (
+                    self.pociatocne_body["G"][i][1] + 5000).__str__() + "\n")
+            f.write("B" + " " + (self.pociatocne_body["B"][i][0] + 5000).__str__() + " " + (
+                    self.pociatocne_body["B"][i][1] + 5000).__str__() + "\n")
+            f.write("P" + " " + (self.pociatocne_body["P"][i][0] + 5000).__str__() + " " + (
+                    self.pociatocne_body["P"][i][1] + 5000).__str__() + "\n")
 
         flag = 0
         for i in generovane_body:
@@ -144,18 +143,127 @@ class Priestor:
             flag += 1
             if flag == 4:
                 flag = 0
-        # print(R)
-        # print(G)
-        # print(B)
-        # print(P)
-        # print(generovane_body)
-        print("Dlzka vygenerovaneho pola: ", generovane_body.__len__())
+        f.close()
+        print("Pocet vygenerovanych bodov: ", generovane_body.__len__())
+
+    def classify(self, zoznam_bodov, x, y, k):
+        zoznam_bodov_ohodnoteny = []
+        x -= 5000
+        y -= 5000
+
+        for bod in zoznam_bodov:
+            bod_x = int(bod[1]) - 5000
+            bod_y = int(bod[2]) - 5000
+            euklid = math.sqrt((bod_x - x) ** 2 + (bod_y - y) ** 2)
+            zoznam_bodov_ohodnoteny.append([bod[0], x, y, euklid])
+
+        # zoradenie bodov podla vzdialenosti
+        zoznam_bodov_ohodnoteny.sort(key=lambda dlzka: int(dlzka[3]))
+
+        zoznam_bodov_ohodnoteny = zoznam_bodov_ohodnoteny[:k]
+
+        farby_v_okoli = {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "P": 0
+        }
+
+        for bod in zoznam_bodov_ohodnoteny:
+            if (bod[0] == "R"):
+                farby_v_okoli["R"] += 1
+            elif (bod[0] == "G"):
+                farby_v_okoli["G"] += 1
+            elif (bod[0] == "B"):
+                farby_v_okoli["B"] += 1
+            elif (bod[0] == "P"):
+                farby_v_okoli["P"] += 1
+
+        max_vzdialenost = max(farby_v_okoli.values())
+        max_farby = [k for k, v in farby_v_okoli.items() if v == max_vzdialenost]
+
+        return max_farby[0]
+
+    def preklasifikuj_body(self, k):
+        f = open("cisla.txt", "r")
+        zoznam_bodov = []
+
+        for i in range(20):
+            tmp = f.readline().split()
+            zoznam_bodov.append(tmp)
+
+        for riadok in f:
+            tmp = riadok.split()
+            farba = self.classify(zoznam_bodov, int(tmp[1]), int(tmp[2]), k)
+
+            if tmp[0] != farba:
+                self.rozdielne_body_po_klasifikacii += 1
+                tmp[0] = farba
+            zoznam_bodov.append(tmp)
+        f.close()
+
+        f = open("klasifikovane_cisla.txt", "w")
+
+        for i in zoznam_bodov:
+            pass
+            f.write(i[0] + " " + i[1].__str__() + " " + i[2].__str__() + "\n")
+        f.close()
+
+    def vykresli(self, subor, nazov_suboru):
+        R = []
+        G = []
+        B = []
+        P = []
+
+        if subor == 1:
+            f = open("cisla.txt", "r")
+        elif subor == 2:
+            f = open("klasifikovane_cisla.txt", "r")
+
+        for riadok in f:
+            tmp = riadok.split()
+            if tmp[0] == 'R':
+                R.append(tmp)
+            elif tmp[0] == 'G':
+                G.append(tmp)
+            elif tmp[0] == 'B':
+                B.append(tmp)
+            elif tmp[0] == 'P':
+                P.append(tmp)
+
+        plt.scatter([int(bod[1]) - 5000 for bod in R], [int(bod[2]) - 5000 for bod in R], s=0.1, c="r")
+        plt.scatter([int(bod[1]) - 5000 for bod in G], [int(bod[2]) - 5000 for bod in G], s=0.1, c="g")
+        plt.scatter([int(bod[1]) - 5000 for bod in B], [int(bod[2]) - 5000 for bod in B], s=0.1, c="b")
+        plt.scatter([int(bod[1]) - 5000 for bod in P], [int(bod[2]) - 5000 for bod in P], s=0.1, c="m")
+        plt.axis([-5000, 5000, -5000, 5000])
+        if subor == 1:
+            plt.savefig(nazov_suboru, dpi=300)
+        elif subor == 2:
+            plt.savefig("graf_klasifikovany.png", dpi=300)
+        # plt.show()
+        return
+
+    def vsetky_testy(self):
+        print("Test pre 5000 bodov")
+        print("-" * 100)
+        start_time = time.time()
+        n = 1250
+        self.generuj_n_bodov(n)
+        print("Generacia bodov:  %s sec" % (time.time() - start_time))
+        self.preklasifikuj_body(3)
+        print("Klasifikacia bodov:  %s sec" % (time.time() - start_time))
+        percentualna_zhoda = self.rozdielne_body_po_klasifikacii / (n * 4 + 20)
+        percentualna_zhoda *= 100
+        percentualna_zhoda = 100 - percentualna_zhoda
+        print("Percentualna odlisnost od vygenerovanych cisiel po klasifikacii: %.2f %%" % percentualna_zhoda)
+        print("Pocet ozdielnych bodov po klasifikacii: %d" % self.rozdielne_body_po_klasifikacii)
+
+
+        self.vykresli(1,"graph.png")
 
     # zaciatok
     def __str__(self):
-        start_time = time.time()
-        self.generate_numbers(5000)
-        print("--- %s seconds ---" % (time.time() - start_time))
+        self.vsetky_testy()
         return " "
 
 
